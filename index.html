@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>مرکز مشاوره میعاد</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<style>
+  body {
+    margin: 0; font-family: Tahoma, sans-serif; background: linear-gradient(135deg, #7b2ff7, #ae55f0);
+    color: white;
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(0,0,0,0.25); padding: 10px 15px;
+    flex-wrap: wrap;
+  }
+  #logoImage, #bannerImage {
+    cursor: pointer; border-radius: 5px;
+  }
+  #logoImage {
+    height: 50px; width: 50px; object-fit: contain;
+  }
+  #bannerImage {
+    height: 60px; max-width: 60vw; object-fit: contain;
+  }
+  h2 {
+    margin: 0 10px; font-weight: 700; font-size: 1.8rem;
+    flex-grow: 1; text-align: center;
+  }
+  nav.menu {
+    width: 220px; position: fixed; top: 0; right: 0; height: 100vh;
+    background: rgba(75, 0, 130, 0.85); overflow-y: auto; padding-top: 60px;
+    transition: all 0.3s ease;
+  }
+  nav.menu.collapsed {
+    width: 50px;
+  }
+  nav.menu ul {
+    list-style: none; padding: 0; margin: 0;
+  }
+  nav.menu ul li {
+    padding: 15px 20px; border-bottom: 1px solid rgba(255,255,255,0.1);
+    cursor: pointer; display: flex; align-items: center; gap: 12px;
+    font-weight: 600; font-size: 1.1rem; transition: background-color 0.3s;
+    white-space: nowrap;
+  }
+  nav.menu ul li:hover, nav.menu ul li.active {
+    background: rgba(255,255,255,0.15);
+  }
+  nav.menu ul li i {
+    width: 20px; font-size: 1.3rem; min-width: 20px; text-align: center;
+  }
+  nav.menu ul li span {
+    flex: 1;
+    transition: opacity 0.3s;
+  }
+  nav.menu.collapsed ul li span {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #toggleMenuBtn {
+    position: fixed; top: 5px; right: 5px; z-index: 1000;
+    background: rgba(0,0,0,0.6);
+    border: none; color: white; padding: 8px 10px;
+    border-radius: 5px; cursor: pointer;
+    font-size: 1.4rem;
+  }
+  main {
+    margin-right: 220px; padding: 20px;
+    transition: margin-right 0.3s ease;
+  }
+  nav.menu.collapsed + main {
+    margin-right: 50px;
+  }
+  section {
+    display: none;
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto 30px;
+    color: black;
+  }
+  section.active {
+    display: block;
+  }
+  label {
+    display: block;
+    margin: 12px 0 5px;
+    font-weight: 600;
+  }
+  input[type=text], select, textarea {
+    width: 100%; padding: 8px; border-radius: 6px;
+    border: none; font-size: 1rem; box-sizing: border-box;
+  }
+  textarea {
+    resize: vertical; min-height: 60px;
+  }
+  table {
+    width: 100%; border-collapse: collapse; margin-top: 15px;
+    background: white; color: black; border-radius: 6px; overflow: hidden;
+  }
+  th, td {
+    border: 1px solid #ccc; padding: 8px; text-align: center;
+    vertical-align: top;
+  }
+  .appointment-records {
+    font-size: 0.85rem; margin: 4px 0; background: #e3d7ff;
+    padding: 5px; border-radius: 4px; color: #3a0ca3;
+  }
+  button {
+    background: white; color: #7b2ff7; border: none;
+    padding: 10px 20px; margin-top: 15px;
+    font-weight: 700; font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: #ddd;
+  }
+  .edit-btn, .delete-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #7b2ff7;
+    margin: 0 5px;
+  }
+  .edit-btn:hover, .delete-btn:hover {
+    color: #4a0099;
+  }
+  @media(max-width: 768px) {
+    nav.menu {
+      position: relative; width: 100%; height: auto; padding-top: 10px;
+    }
+    nav.menu.collapsed {
+      width: 100%;
+    }
+    main {
+      margin-right: 0; padding: 10px;
+    }
+  }
+</style>
+</head>
+<body>
+<header>
+  <input type="file" id="logoUpload" accept="image/*" style="display:none" />
+  <img id="logoImage" src="" alt="لوگو" title="برای تغییر لوگو کلیک کنید" />
+  <h2>مرکز مشاوره میعاد</h2>
+  <input type="file" id="bannerUpload" accept="image/*" style="display:none" />
+  <img id="bannerImage" src="" alt="بنر" title="برای تغییر بنر کلیک کنید" />
+</header>
+
+<button id="toggleMenuBtn" title="باز/بسته کردن منو"><i class="fa fa-bars"></i></button>
+
+<nav class="menu" id="mainMenu">
+  <ul>
+    <li class="active" onclick="switchSection('admission', this)"><i class="fa fa-user-plus"></i><span>پذیرش</span></li>
+    <li onclick="switchSection('appointment', this)"><i class="fa fa-calendar-check"></i><span>نوبت دهی</span></li>
+    <li onclick="switchSection('records', this)"><i class="fa fa-folder-open"></i><span>پرونده الکترونیکی</span></li>
+    <li onclick="switchSection('reports', this)"><i class="fa fa-chart-line"></i><span>گزارشات</span></li>
+    <li onclick="switchSection('backup', this)"><i class="fa fa-database"></i><span>پشتیبان گیری</span></li>
+    <li onclick="switchSection('managers', this)"><i class="fa fa-users-cog"></i><span>مدیر و مشاوران</span></li>
+    <li onclick="switchSection('financial', this)"><i class="fa fa-wallet"></i><span>مالی</span></li>
+  </ul>
+</nav>
+
+<main>
+
+<section id="admission" class="active">
+  <h3>پذیرش</h3>
+  <label for="admissionName">نام مراجع <span style="color:#f44336">*</span></label>
+  <input type="text" id="admissionName" required />
+  
+  <label for="admissionParent">نام والد <span style="color:#f44336">*</span></label>
+  <input type="text" id="admissionParent" required />
+  
+  <label for="admissionNationalCode">کد ملی <span style="color:#f44336">*</span></label>
+  <input type="text" id="admissionNationalCode" required />
+  
+  <label for="admissionPhone">شماره تلفن</label>
+  <input type="text" id="admissionPhone" />
+  
+  <label for="school">مدرسه</label>
+  <input type="text" id="school" />
+  
+  <label>تاریخ تولد</label>
+  <div style="display:flex; gap:10px;">
+    <select id="birthYear" aria-label="سال تولد" required style="flex:1;"></select>
+    <select id="birthMonth" aria-label="ماه تولد" required style="flex:1;"></select>
+    <select id="birthDay" aria-label="روز تولد" required style="flex:1;"></select>
+  </div>
+  
+  <label for="grade">مقطع تحصیلی</label>
+  <select id="grade" >
+    <option>ابتدایی</option>
+    <option>متوسطه اول</option>
+    <option>متوسطه دوم</option>
+  </select>
+
+  <label for="level">پایه تحصیلی</label>
+  <select id="level"></select>
+
+  <label for="address">آدرس</label>
+  <textarea id="address" placeholder="آدرس را وارد کنید"></textarea>
+  
+  <label for="description">توضیحات</label>
+  <textarea id="description" placeholder="توضیحات بیشتر"></textarea>
+
+  <button onclick="saveAdmission()">ذخیره پذیرش</button>
+</section>
+
+<section id="appointment">
+  <h3>نوبت دهی</h3>
+  <label for="selectClient">انتخاب مراجع</label>
+  <select id="selectClient"></select>
+
+  <label for="priority">فوریت</label>
+  <select id="priority">
+    <option>فوری</option>
+    <option>غیر فوری</option>
+  </select>
+  
+  <label for="studentType">نوع مراجعه</label>
+  <select id="studentType">
+    <option>دانش‌آموز</option>
+    <option>غیر دانش‌آموز</option>
+  </select>
+
+  <label for="costType">نوع هزینه</label>
+  <select id="costType">
+    <option>با هزینه</option>
+    <option>بدون هزینه</option>
+  </select>
+
+  <label for="visitCost">ویزیت (ریال)</label>
+  <input type="text" id="visitCost" placeholder="مثال: ۱,۰۰۰,۰۰۰" inputmode="numeric" />
+
+  <label>تاریخ نوبت</label>
+  <div style="display:flex; gap:10px;">
+    <select id="appointmentYear" aria-label="سال نوبت" required style="flex:1;"></select>
+    <select id="appointmentMonth" aria-label="ماه نوبت" required style="flex:1;"></select>
+    <select id="appointmentDay" aria-label="روز نوبت" required style="flex:1;"></select>
+  </div>
+
+  <label for="selectAdvisor">انتخاب مشاور</label>
+  <select id="selectAdvisor"></select>
+
+  <button onclick="saveAppointment()">ثبت نوبت</button>
+  <button onclick="printInvoice()">چاپ فاکتور</button>
+</section>
+
+<section id="records">
+  <h3>پرونده الکترونیکی</h3>
+  <input type="text" id="searchRecord" placeholder="جستجو..." />
+  <table id="recordsTable">
+    <thead>
+      <tr>
+        <th>نام</th><th>نام والد</th><th>کد ملی</th><th>شماره تلفن</th><th>مدرسه</th><th>سال تولد</th><th>مقطع</th><th>پایه</th><th>آدرس</th><th>توضیحات</th><th>سوابق نوبت</th><th>عملیات</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <button onclick="exportRecords()">خروجی اکسل</button>
+</section>
+
+<section id="reports">
+  <h3>گزارشات</h3>
+  <button onclick="exportAll()">خروجی اکسل همه اطلاعات</button>
+</section>
+
+<section id="backup">
+  <h3>پشتیبان گیری</h3>
+  <button onclick="downloadBackup()">دانلود بکاپ</button>
+  <input type="file" id="backupUpload" />
+  <button onclick="uploadBackup()">بارگذاری بکاپ</button>
+</section>
+
+<section id="managers">
+  <h3>مدیر و مشاوران</h3>
+  <label for="managerName">نام</label>
+  <input type="text" id="managerName" />
+  
+  <label for="managerPhone">تلفن</label>
+  <input type="text" id="managerPhone" />
+  
+  <label for="managerCode">کد ملی</label>
+  <input type="text" id="managerCode" />
+  
+  <label for="managerAddress">آدرس</label>
+  <input type="text" id="managerAddress" />
+  
+  <button onclick="saveManager()">ذخیره اطلاعات مدیر و مشاوران</button>
+  <table id="managersTable" style="margin-top:10px;">
+    <thead>
+      <tr><th>نام</th><th>تلفن</th><th>کد ملی</th><th>آدرس</th><th>ویرایش</th><th>حذف</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<section id="financial">
+  <h3>مالی</h3>
+  <label for="addExpenseDesc">ثبت هزینه جدید</label>
+  <input type="text" id="addExpenseDesc" placeholder="شرح هزینه" />
+  <label for="addExpenseAmount">مبلغ هزینه (ریال)</label>
+  <input type="text" id="addExpenseAmount" placeholder="مثال: ۱,۰۰۰,۰۰۰" inputmode="numeric" />
+  <button onclick="addExpense()">ثبت هزینه</button>
+  
+  <h4 style="margin-top:30px;">جمع درآمدها و هزینه‌ها</h4>
+  <p><b>جمع درآمد (ویزیت‌ها): </b><span id="totalIncome">۰</span> ریال</p>
+  <p><b>جمع هزینه‌ها: </b><span id="totalExpense">۰</span> ریال</p>
+  <p><b>مانده (درآمد - هزینه): </b><span id="balance">۰</span> ریال</p>
+  
+  <button onclick="exportFinancial()">خروجی اکسل مالی</button>
+
+  <table id="expensesTable" style="margin-top:15px;">
+    <thead>
+      <tr><th>شرح هزینه</th><th>مبلغ (ریال)</th><th>ویرایش</th><th>حذف</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<script>
+  // پر کردن سال، ماه، روز تولد و نوبت
+  function fillDateSelects(yearId, monthId, dayId) {
+    const yearSelect = document.getElementById(yearId);
+    if(!yearSelect) return;
+    yearSelect.innerHTML = '';
+    for(let y=1350; y<=1440; y++){
+      let opt = document.createElement('option');
+      opt.value = y; opt.textContent = y;
+      if(y === 1404) opt.selected = true;
+      yearSelect.appendChild(opt);
+    }
+    const months = ["فروردین","اردیبهشت","خرداد","تیر","مرداد","شهریور","مهر","آبان","آذر","دی","بهمن","اسفند"];
+    const monthSelect = document.getElementById(monthId);
+    if(!monthSelect) return;
+    monthSelect.innerHTML = '';
+    months.forEach(m=>{
+      let opt = document.createElement('option');
+      opt.textContent = m;
+      monthSelect.appendChild(opt);
+    });
+    const daySelect = document.getElementById(dayId);
+    if(!daySelect) return;
+    daySelect.innerHTML = '';
+    for(let d=1; d<=31; d++){
+      let opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      daySelect.appendChild(opt);
+    }
+  }
+  fillDateSelects('birthYear','birthMonth','birthDay');
+  fillDateSelects('appointmentYear','appointmentMonth','appointmentDay');
+
+  // پر کردن پایه تحصیلی از 1 تا 12
+  const levelSelect = document.getElementById('level');
+  for(let i=1; i<=12; i++){
+    let opt = document.createElement('option');
+    opt.value = i; opt.textContent = i;
+    levelSelect.appendChild(opt);
+  }
+
+  // منوی کشویی جمع شونده
+  const toggleMenuBtn = document.getElementById('toggleMenuBtn');
+  const mainMenu = document.getElementById('mainMenu');
+  toggleMenuBtn.onclick = () => {
+    mainMenu.classList.toggle('collapsed');
+  };
+
+  // سوئیچ بخش ها
+  function switchSection(id, el){
+    document.querySelectorAll('nav.menu ul li').forEach(li=>{
+      li.classList.remove('active');
+    });
+    el.classList.add('active');
+    document.querySelectorAll('main section').forEach(sec=>{
+      sec.classList.remove('active');
+    });
+    document.getElementById(id).classList.add('active');
+    if(id === 'appointment') refreshClientsList();
+    if(id === 'records') renderRecords();
+    if(id === 'managers') renderManagers();
+    if(id === 'financial') renderExpenses();
+  }
+
+  // اعتبارسنجی و ذخیره پذیرش
+  function saveAdmission(){
+    let name = document.getElementById('admissionName').value.trim();
+    let parent = document.getElementById('admissionParent').value.trim();
+    let nationalCode = document.getElementById('admissionNationalCode').value.trim();
+    if(!name || !parent || !nationalCode){
+      alert('لطفا نام، نام والد و کد ملی را وارد کنید.');
+      return;
+    }
+    let phone = document.getElementById('admissionPhone').value.trim();
+    let school = document.getElementById('school').value.trim();
+    let birthYear = parseInt(document.getElementById('birthYear').value);
+    let birthMonth = document.getElementById('birthMonth').selectedIndex + 1;
+    let birthDay = parseInt(document.getElementById('birthDay').value);
+    let grade = document.getElementById('grade').value;
+    let level = document.getElementById('level').value;
+    let address = document.getElementById('address').value.trim();
+    let description = document.getElementById('description').value.trim();
+
+    let data = JSON.parse(localStorage.getItem('admissions')||'[]');
+    if(data.find(item => item.nationalCode === nationalCode)){
+      if(!confirm('کد ملی تکراری است، آیا مایلید اطلاعات جایگزین شود؟')){
+        return;
+      }
+      // حذف قبلی
+      data = data.filter(item => item.nationalCode !== nationalCode);
+    }
+    data.push({
+      name, parent, nationalCode, phone, school,
+      birthYear, birthMonth, birthDay,
+      grade, level, address, description
+    });
+    localStorage.setItem('admissions', JSON.stringify(data));
+    alert('اطلاعات پذیرش با موفقیت ذخیره شد.');
+    clearAdmissionInputs();
+  }
+  function clearAdmissionInputs(){
+    ['admissionName','admissionParent','admissionNationalCode','admissionPhone','school','address','description'].forEach(id=>{
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('birthYear').value = 1404;
+    document.getElementById('birthMonth').selectedIndex = 0;
+    document.getElementById('birthDay').value = 1;
+    document.getElementById('grade').selectedIndex = 0;
+    document.getElementById('level').value = 1;
+  }
+
+  // بارگذاری لیست مراجعان در نوبت دهی
+  function refreshClientsList(){
+    const selectClient = document.getElementById('selectClient');
+    selectClient.innerHTML = '';
+    let data = JSON.parse(localStorage.getItem('admissions')||'[]');
+    data.forEach(item=>{
+      let opt = document.createElement('option');
+      opt.value = item.nationalCode;
+      opt.textContent = `${item.name} - ${item.nationalCode}`;
+      selectClient.appendChild(opt);
+    });
+    refreshAdvisorsList();
+  }
+
+  // بارگذاری لیست مشاوران
+  function refreshAdvisorsList(){
+    const selectAdvisor = document.getElementById('selectAdvisor');
+    selectAdvisor.innerHTML = '';
+    let data = JSON.parse(localStorage.getItem('managers')||'[]');
+    data.forEach(item=>{
+      let opt = document.createElement('option');
+      opt.value = item.nationalCode;
+      opt.textContent = item.name;
+      selectAdvisor.appendChild(opt);
+    });
+  }
+
+  // فرمت اعداد با کاما (فارسی)
+  function formatNumberFa(num){
+    if(typeof num !== 'number') num = parseInt(num);
+    if(isNaN(num)) return '';
+    return num.toLocaleString('fa-IR');
+  }
+
+  // ورودی مبلغ با کاما و فقط اعداد
+  const visitCostInput = document.getElementById('visitCost');
+  visitCostInput.addEventListener('input', e => {
+    let val = e.target.value.replace(/[^\d۰-۹]/g, ''); // فقط عدد فارسی/انگلیسی
+    val = val.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)); // تبدیل به انگلیسی
+    if(val === '') {
+      e.target.value = '';
+      return;
+    }
+    let num = parseInt(val, 10);
+    if(isNaN(num)){
+      e.target.value = '';
+      return;
+    }
+    e.target.value = num.toLocaleString('fa-IR');
+  });
+
+  // ذخیره نوبت دهی
+  function saveAppointment(){
+    let clientCode = document.getElementById('selectClient').value;
+    if(!clientCode){
+      alert('لطفا یک مراجع انتخاب کنید');
+      return;
+    }
+    let priority = document.getElementById('priority').value;
+    let studentType = document.getElementById('studentType').value;
+    let costType = document.getElementById('costType').value;
+    let visitCostRaw = document.getElementById('visitCost').value
+      .replace(/[^\d۰-۹]/g, '')
+      .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+    let visitCost = parseInt(visitCostRaw, 10);
+    if(costType === 'با هزینه' && (isNaN(visitCost) || visitCost <= 0)){
+      alert('لطفا مبلغ ویزیت را به درستی وارد کنید');
+      return;
+    }
+    let appointmentYear = parseInt(document.getElementById('appointmentYear').value);
+    let appointmentMonth = document.getElementById('appointmentMonth').selectedIndex + 1;
+    let appointmentDay = parseInt(document.getElementById('appointmentDay').value);
+    let advisor = document.getElementById('selectAdvisor').value;
+
+    let appointments = JSON.parse(localStorage.getItem('appointments')||'[]');
+    // شماره فاکتور بر اساس تاریخ و شمارش نوبت‌های همان روز
+    let todayAppointments = appointments.filter(a=>a.appointmentYear===appointmentYear && a.appointmentMonth===appointmentMonth && a.appointmentDay===appointmentDay);
+    let invoiceNumber = `${appointmentYear}${String(appointmentMonth).padStart(2,'0')}${String(appointmentDay).padStart(2,'0')}${todayAppointments.length+1}`;
+
+    appointments.push({
+      clientCode, priority, studentType, costType,
+      visitCost: costType === 'بدون هزینه' ? 0 : visitCost,
+      appointmentYear, appointmentMonth, appointmentDay,
+      advisor,
+      invoiceNumber
+    });
+    localStorage.setItem('appointments', JSON.stringify(appointments));
+    alert('نوبت با موفقیت ثبت شد.\nشماره فاکتور: ' + invoiceNumber);
+    clearAppointmentInputs();
+  }
+  function clearAppointmentInputs(){
+    document.getElementById('priority').selectedIndex = 0;
+    document.getElementById('studentType').selectedIndex = 0;
+    document.getElementById('costType').selectedIndex = 0;
+    document.getElementById('visitCost').value = '';
+    document.getElementById('appointmentYear').value = 1404;
+    document.getElementById('appointmentMonth').selectedIndex = 0;
+    document.getElementById('appointmentDay').value = 1;
+    document.getElementById('selectAdvisor').selectedIndex = 0;
+  }
+
+  // رندر پرونده الکترونیکی و سوابق
+  function renderRecords(){
+    let data = JSON.parse(localStorage.getItem('admissions')||'[]');
+    let appointments = JSON.parse(localStorage.getItem('appointments')||'[]');
+    const tbody = document.querySelector('#recordsTable tbody');
+    tbody.innerHTML = '';
+    data.forEach(client=>{
+      let clientAppts = appointments.filter(appt=>appt.clientCode === client.nationalCode);
+      let apptHtml = clientAppts.map(appt=>{
+        return `<div class="appointment-records">
+          <b>تاریخ:</b> ${appt.appointmentYear}/${appt.appointmentMonth}/${appt.appointmentDay} |
+          <b>مشاور:</b> ${appt.advisor} |
+          <b>هزینه:</b> ${formatNumberFa(appt.visitCost)} ریال |
+          <b>شماره فاکتور:</b> ${appt.invoiceNumber}
+        </div>`;
+      }).join('');
+      let tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${client.name}</td>
+        <td>${client.parent}</td>
+        <td>${client.nationalCode}</td>
+        <td>${client.phone || ''}</td>
+        <td>${client.school || ''}</td>
+        <td>${client.birthYear}</td>
+        <td>${client.grade}</td>
+        <td>${client.level}</td>
+        <td>${client.address || ''}</td>
+        <td>${client.description || ''}</td>
+        <td>${apptHtml}</td>
+        <td>
+          <button class="edit-btn" title="ویرایش" onclick="editAdmission('${client.nationalCode}')"><i class="fa fa-pen"></i></button>
+          <button class="delete-btn" title="حذف" onclick="deleteAdmission('${client.nationalCode}')"><i class="fa fa-trash"></i></button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // حذف پذیرش و مرتبط با نوبت‌ها
+  function deleteAdmission(nationalCode){
+    if(!confirm('آیا از حذف این مراجع اطمینان دارید؟ تمام نوبت‌ها و اطلاعات مرتبط حذف خواهند شد.')) return;
+    let data = JSON.parse(localStorage.getItem('admissions')||'[]');
+    data = data.filter(item=>item.nationalCode !== nationalCode);
+    localStorage.setItem('admissions', JSON.stringify(data));
+    // حذف نوبت‌های مرتبط
+    let appointments = JSON.parse(localStorage.getItem('appointments')||'[]');
+    appointments = appointments.filter(appt => appt.clientCode !== nationalCode);
+    localStorage.setItem('appointments', JSON.stringify(appointments));
+    renderRecords();
+  }
+
+  // ویرایش پذیرش
+  function editAdmission(nationalCode){
+    let data = JSON.parse(localStorage.getItem('admissions')||'[]');
+    let client = data.find(c=>c.nationalCode === nationalCode);
+    if(!client) return alert('مراجع یافت نشد!');
+    switchSection('admission', document.querySelector('nav.menu ul li.active'));
+    document.getElementById('admissionName').value = client.name;
+    document.getElementById('admissionParent').value = client.parent;
+    document.getElementById('admissionNationalCode').value = client.nationalCode;
+    document.getElementById('admissionPhone').value = client.phone || '';
+    document.getElementById('school').value = client.school || '';
+    document.getElementById('birthYear').value = client.birthYear;
+    document.getElementById('birthMonth').selectedIndex = client.birthMonth-1;
+    document.getElementById('birthDay').value = client.birthDay;
+    document.getElementById('grade').value = client.grade;
+    document.getElementById('level').value = client.level;
+    document.getElementById('address').value = client.address || '';
+    document.getElementById('description').value = client.description || '';
+  }
+
+  // چاپ فاکتور بر اساس شماره فاکتور
+  function printInvoice(){
+    let selectClient = document.getElementById('selectClient');
+    let clientCode = selectClient.value;
+    if(!clientCode){
+      alert('لطفا مراجع را انتخاب کنید');
+      return;
+    }
+    let appointments = JSON.parse(localStorage.getItem('appointments')||'[]');
+    let filtered = appointments.filter(a => a.clientCode === clientCode);
+    if(filtered.length === 0){
+      alert('برای این مراجع نوبتی ثبت نشده است');
+      return;
+    }
+    // فاکتور آخرین نوبت
+    let appt = filtered[filtered.length-1];
+    let admissions = JSON.parse(localStorage.getItem('admissions')||'[]');
+    let client = admissions.find(c=>c.nationalCode === clientCode);
+    let invoiceHtml = `
+      <html><head><title>فاکتور شماره ${appt.invoiceNumber}</title>
+      <style>body{font-family:tahoma;direction:rtl;padding:20px;} h2{text-align:center;} table{width:100%;border-collapse:collapse;} td,th{border:1px solid #333;padding:8px;text-align:right;} </style>
+      </head><body>
+      <h2>فاکتور نوبت مشاوره</h2>
+      <table>
+        <tr><th>نام مراجع</th><td>${client.name}</td></tr>
+        <tr><th>کد ملی</th><td>${client.nationalCode}</td></tr>
+        <tr><th>تاریخ نوبت</th><td>${appt.appointmentYear}/${appt.appointmentMonth}/${appt.appointmentDay}</td></tr>
+        <tr><th>مشاور</th><td>${appt.advisor}</td></tr>
+        <tr><th>شماره فاکتور</th><td>${appt.invoiceNumber}</td></tr>
+        <tr><th>هزینه (ریال)</th><td>${formatNumberFa(appt.visitCost)}</td></tr>
+      </table>
+      </body></html>
+    `;
+    let printWindow = window.open('', 'PRINT', 'height=600,width=800');
+    printWindow.document.write(invoiceHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  }
+
+  // خروجی اکسل پرونده ها
+  function exportRecords(){
+    let data = JSON.parse(localStorage.getItem('admissions')||'[]');
+    let appointments = JSON.parse(localStorage.getItem('appointments')||'[]');
+    let rows = [];
+    data.forEach(client=>{
+      let clientAppts = appointments.filter(appt=>appt.clientCode === client.nationalCode);
+      clientAppts.forEach(appt=>{
+        rows.push({
+          نام: client.name,
+          والد: client.parent,
+          "کد ملی": client.nationalCode,
+          تلفن: client.phone || '',
+          مدرسه: client.school || '',
+          "سال تولد": client.birthYear,
+          "مقطع": client.grade,
+          "پایه": client.level,
+          آدرس: client.address || '',
+          توضیحات: client.description || '',
+          "تاریخ نوبت": `${appt.appointmentYear}/${appt.appointmentMonth}/${appt.appointmentDay}`,
+          مشاور: appt.advisor,
+          "شماره فاکتور": appt.invoiceNumber,
+          "هزینه (ریال)": appt.visitCost
+        });
+      });
+      if(clientAppts.length === 0){
+        rows.push({
+          نام: client.name,
+          والد: client.parent,
+          "کد ملی": client.nationalCode,
+          تلفن: client.phone || '',
+          مدرسه: client.school || '',
+          "سال تولد": client.birthYear,
+          "مقطع": client.grade,
+          "پایه": client.level,
+          آدرس: client.address || '',
+          توضیحات: client.description || '',
+          "تاریخ نوبت": '',
+          مشاور: '',
+          "شماره فاکتور": '',
+          "هزینه (ریال)": ''
+        });
+      }
+    });
+    let ws = XLSX.utils.json_to_sheet(rows);
+    let wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "پرونده‌ها");
+    XLSX.writeFile(wb, "records.xlsx");
+  }
+
+  // خروجی اکسل همه اطلاعات (گزارشات)
+  function exportAll(){
+    // مشابه exportRecords میشه
+    exportRecords();
+  }
+
+  // مدیر و مشاوران
+  function saveManager(){
+    let name = document.getElementById('managerName').value.trim();
+    let phone = document.getElementById('managerPhone').value.trim();
+    let nationalCode = document.getElementById('managerCode').value.trim();
+    let address = document.getElementById('managerAddress').value.trim();
+    if(!name || !nationalCode){
+      alert('نام و کد ملی الزامی است');
+      return;
+    }
+    let data = JSON.parse(localStorage.getItem('managers')||'[]');
+    if(data.find(m => m.nationalCode === nationalCode)){
+      if(!confirm('کد ملی تکراری است، جایگزین شود؟')) return;
+      data = data.filter(m => m.nationalCode !== nationalCode);
+    }
+    data.push({name, phone, nationalCode, address});
+    localStorage.setItem('managers', JSON.stringify(data));
+    alert('اطلاعات مدیر/مشاور ذخیره شد.');
+    renderManagers();
+    clearManagerInputs();
+  }
+  function clearManagerInputs(){
+    ['managerName','managerPhone','managerCode','managerAddress'].forEach(id=>{
+      document.getElementById(id).value = '';
+    });
+  }
+  function renderManagers(){
+    let data = JSON.parse(localStorage.getItem('managers')||'[]');
+    let tbody = document.querySelector('#managersTable tbody');
+    tbody.innerHTML = '';
+    data.forEach(m=>{
+      let tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${m.name}</td>
+        <td>${m.phone}</td>
+        <td>${m.nationalCode}</td>
+        <td>${m.address}</td>
+        <td><button class="edit-btn" onclick="editManager('${m.nationalCode}')"><i class="fa fa-pen"></i></button></td>
+        <td><button class="delete-btn" onclick="deleteManager('${m.nationalCode}')"><i class="fa fa-trash"></i></button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+  function editManager(nationalCode){
+    let data = JSON.parse(localStorage.getItem('managers')||'[]');
+    let m = data.find(m=>m.nationalCode === nationalCode);
+    if(!m) return alert('یافت نشد');
+    document.getElementById('managerName').value = m.name;
+    document.getElementById('managerPhone').value = m.phone;
+    document.getElementById('managerCode').value = m.nationalCode;
+    document.getElementById('managerAddress').value = m.address;
+  }
+  function deleteManager(nationalCode){
+    if(!confirm('آیا مطمئنید حذف شود؟')) return;
+    let data = JSON.parse(localStorage.getItem('managers')||'[]');
+    data = data.filter(m=>m.nationalCode !== nationalCode);
+    localStorage.setItem('managers', JSON.stringify(data));
+    renderManagers();
+  }
+
+  // مالی: ثبت هزینه‌ها و درآمدها (ویزیت‌ها)
+  function addExpense(){
+    let desc = document.getElementById('addExpenseDesc').value.trim();
+    let amountRaw = document.getElementById('addExpenseAmount').value.replace(/,/g, '');
+    let amount = parseInt(amountRaw);
+    if(!desc || isNaN(amount) || amount <= 0){
+      alert('شرح و مبلغ هزینه را درست وارد کنید');
+      return;
+    }
+    let expenses = JSON.parse(localStorage.getItem('expenses')||'[]');
+    expenses.push({desc, amount});
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+    alert('هزینه ثبت شد');
+    document.getElementById('addExpenseDesc').value = '';
+    document.getElementById('addExpenseAmount').value = '';
+    renderExpenses();
+  }
+  function renderExpenses(){
+    let expenses = JSON.parse(localStorage.getItem('expenses')||'[]');
+    let tbody = document.querySelector('#expensesTable tbody');
+    tbody.innerHTML = '';
+    expenses.forEach((ex,i)=>{
+      let tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${ex.desc}</td>
+        <td>${formatNumberFa(ex.amount)}</td>
+        <td><button class="edit-btn" onclick="editExpense(${i})"><i class="fa fa-pen"></i></button></td>
+        <td><button class="delete-btn" onclick="deleteExpense(${i})"><i class="fa fa-trash"></i></button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    updateFinancialSummary();
+  }
+  function editExpense(index){
+    let expenses = JSON.parse(localStorage.getItem('expenses')||'[]');
+    let ex = expenses[index];
+    if(!ex) return;
+    document.getElementById('addExpenseDesc').value = ex.desc;
+    document.getElementById('addExpenseAmount').value = ex.amount.toLocaleString('fa-IR');
+    deleteExpense(index);
+  }
+  function deleteExpense(index){
+    let expenses = JSON.parse(localStorage.getItem('expenses')||'[]');
+    expenses.splice(index, 1);
+    localStorage.setItem('expenses', JSON.stringify(expenses));
+    renderExpenses();
+  }
+  function updateFinancialSummary(){
+    let appointments = JSON.parse(localStorage.getItem('appointments')||'[]');
+    let expenses = JSON.parse(localStorage.getItem('expenses')||'[]');
+    let totalIncome = appointments.reduce((a,c)=>a+c.visitCost,0);
+    let totalExpense = expenses.reduce((a,c)=>a+c.amount,0);
+    let balance = totalIncome - totalExpense;
+    document.getElementById('totalIncome').textContent = formatNumberFa(totalIncome);
+    document.getElementById('totalExpense').textContent = formatNumberFa(totalExpense);
+    document.getElementById('balance').textContent = formatNumberFa(balance);
+  }
+  function exportFinancial(){
+    let appointments = JSON.parse(localStorage.getItem('appointments')||'[]');
+    let expenses = JSON.parse(localStorage.getItem('expenses')||'[]');
+    let incomeRows = appointments.map(appt => ({
+      "کد ملی مراجع": appt.clientCode,
+      "تاریخ نوبت": `${appt.appointmentYear}/${appt.appointmentMonth}/${appt.appointmentDay}`,
+      "مشاور": appt.advisor,
+      "هزینه (ریال)": appt.visitCost
+    }));
+    let expenseRows = expenses.map(exp => ({
+      "شرح هزینه": exp.desc,
+      "مبلغ (ریال)": exp.amount
+    }));
+    let wb = XLSX.utils.book_new();
+    let wsIncome = XLSX.utils.json_to_sheet(incomeRows);
+    let wsExpense = XLSX.utils.json_to_sheet(expenseRows);
+    XLSX.utils.book_append_sheet(wb, wsIncome, "درآمدها");
+    XLSX.utils.book_append_sheet(wb, wsExpense, "هزینه‌ها");
+    XLSX.writeFile(wb, "financial.xlsx");
+  }
+
+  // بکاپ و بازیابی
+  function downloadBackup(){
+    let backupData = {
+      admissions: JSON.parse(localStorage.getItem('admissions')||'[]'),
+      appointments: JSON.parse(localStorage.getItem('appointments')||'[]'),
+      managers: JSON.parse(localStorage.getItem('managers')||'[]'),
+      expenses: JSON.parse(localStorage.getItem('expenses')||'[]')
+    };
+    let blob = new Blob([JSON.stringify(backupData, null, 2)], {type:'application/json'});
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = 'backup.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  function uploadBackup(){
+    let input = document.getElementById('backupUpload');
+    if(input.files.length === 0) {
+      alert('فایل بکاپ انتخاب نشده');
+      return;
+    }
+    let file = input.files[0];
+    let reader = new FileReader();
+    reader.onload = e => {
+      try {
+        let data = JSON.parse(e.target.result);
+        if(data.admissions) localStorage.setItem('admissions', JSON.stringify(data.admissions));
+        if(data.appointments) localStorage.setItem('appointments', JSON.stringify(data.appointments));
+        if(data.managers) localStorage.setItem('managers', JSON.stringify(data.managers));
+        if(data.expenses) localStorage.setItem('expenses', JSON.stringify(data.expenses));
+        alert('بکاپ با موفقیت بارگذاری شد');
+        renderRecords();
+        renderManagers();
+        renderExpenses();
+      } catch {
+        alert('خطا در خواندن فایل بکاپ');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // بارگذاری لوگو و بنر
+  const logoImage = document.getElementById('logoImage');
+  const bannerImage = document.getElementById('bannerImage');
+  document.getElementById('logoUpload').addEventListener('change', e=>{
+    if(e.target.files.length === 0) return;
+    let file = e.target.files[0];
+    let reader = new FileReader();
+    reader.onload = evt => {
+      logoImage.src = evt.target.result;
+      localStorage.setItem('logoImage', evt.target.result);
+    };
+    reader.readAsDataURL(file);
+  });
+  logoImage.addEventListener('click', ()=>document.getElementById('logoUpload').click());
+
+  document.getElementById('bannerUpload').addEventListener('change', e=>{
+    if(e.target.files.length === 0) return;
+    let file = e.target.files[0];
+    let reader = new FileReader();
+    reader.onload = evt => {
+      bannerImage.src = evt.target.result;
+      localStorage.setItem('bannerImage', evt.target.result);
+    };
+    reader.readAsDataURL(file);
+  });
+  bannerImage.addEventListener('click', ()=>document.getElementById('bannerUpload').click());
+
+  function loadImages(){
+    let logo = localStorage.getItem('logoImage');
+    if(logo) logoImage.src = logo;
+    else logoImage.src = 'https://via.placeholder.com/50?text=لوگو';
+
+    let banner = localStorage.getItem('bannerImage');
+    if(banner) bannerImage.src = banner;
+    else bannerImage.src = 'https://via.placeholder.com/300x60?text=بنر';
+  }
+  loadImages();
+
+  // بارگذاری اولیه لیست مراجعان و مدیران و مالی
+  refreshClientsList();
+  renderRecords();
+  renderManagers();
+  renderExpenses();
+  updateFinancialSummary();
+
+</script>
+
+</body>
+</html>
